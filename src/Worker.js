@@ -13,11 +13,20 @@ const messageStatuses = {
 };
 
 const timeout = (span, endTrace) => {
-    span.timeout = setTimeout(() => {        
+    span.timeout = setTimeout(() => {
         span.setTag("span.timeout", true);
         endTrace(span);
     }, TWO_HOURS_IN_MS);
     return span;
+}
+
+const parseJson = (jsonString) => {
+    try {
+        return JSON.parse(jsonString);
+    }
+    catch (error) {
+        return jsonString;
+    }
 }
 
 class Worker extends EventEmitter {
@@ -96,21 +105,34 @@ class Worker extends EventEmitter {
     async _handleMessage(message, attributes) {
         let span = null;
         try {
-            const jsonMessage = JSON.parse(message);
-            if (this._validateMessage(jsonMessage, this.messageSchema).error) return;
-
-            const controller = this.router.get(jsonMessage.type);
-            const contentValidationResult = this._validateMessage(jsonMessage.content, controller.validation.schema);
-            if (contentValidationResult.error) return;
-
-            this.emit('message', { type: jsonMessage.type, status: messageStatuses.processing });
-
             if (this.router.trace) {
                 const traceId = _.getOr(null, 'traceId.StringValue')(attributes);
                 span = this.startTrace(traceId);
-                this.logEvent(span, 'handleMessage Request', { messageContent: jsonMessage, attributes });
             }
-            await controller.handler(contentValidationResult.value, attributes, span);
+
+            const jsonMessage = parseJson(message);
+
+            this.logEvent(span, 'handleMessage Request', { messageContent: jsonMessage, attributes })
+
+            const jsonMessageValidationResult = this._validateMessage(jsonMessage, this.messageSchema);
+
+            if (jsonMessageValidationResult.error) {
+                throw jsonMessageValidationResult.error;
+            };
+
+            const controller = this.router.get(jsonMessage.type);
+            const contentValidationResult = this._validateMessage(jsonMessage.content, controller.validation.schema);
+
+            if (contentValidationResult.error) {
+                throw contentValidationResult.error;
+            };
+ 
+            this.emit('message', { type: jsonMessage.type, status: messageStatuses.processing });
+
+            const result = await controller.handler(contentValidationResult.value, attributes, span);
+
+            if(!_.isEmpty(result)) this.logEvent(span, 'handler result', result);
+
             this.endTrace(span);
             this.emit('message', { type: jsonMessage.type, status: messageStatuses.proceed });
 
