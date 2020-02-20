@@ -100,8 +100,6 @@ class Worker extends EventEmitter {
         span.log({ 'event': 'error', 'error.object': errorObject, 'message': message, 'stack': stack });
     }
 
-
-
     async _handleMessage(message, attributes) {
         let span = null;
         try {
@@ -137,7 +135,8 @@ class Worker extends EventEmitter {
             this.emit('message', { type: jsonMessage.type, status: messageStatuses.proceed });
 
         } catch (error) {
-            this.logError(span, error, error.message, error.stack);
+            if(error.traced) delete error.traced;                
+            else this.logError(span, error, error.message, error.stack);           
             this.endTrace(span);
             this.emit('error', error);
         }
