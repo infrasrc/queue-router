@@ -94,10 +94,7 @@ class Worker extends EventEmitter {
     }
 
     logError(span, errorObject, message, stack) {
-        if ((!span) || (!span.setTag instanceof Function)) return;
-        span.setTag(Tags.ERROR, true);
-        if (!span.log instanceof Function) return;
-        span.log({ 'event': 'error', 'error.object': errorObject, 'message': message, 'stack': stack });
+        Tracer.logError(span, error, errorObject, message, stack);
     }
 
     async _handleMessage(message, attributes) {
@@ -135,8 +132,7 @@ class Worker extends EventEmitter {
             this.emit('message', { type: jsonMessage.type, status: messageStatuses.proceed });
 
         } catch (error) {
-            if(error.traced) delete error.traced;                
-            else this.logError(span, error, error.message, error.stack);           
+            this.logError(span, error, error.message, error.stack);           
             this.endTrace(span);
             this.emit('error', error);
         }
