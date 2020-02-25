@@ -94,7 +94,7 @@ class Worker extends EventEmitter {
     }
 
     logError(span, errorObject, message, stack) {
-        Tracer.logError(span, error, errorObject, message, stack);
+        Tracer.logError(span, errorObject, message, stack);
     }
 
     async _handleMessage(message, attributes) {
