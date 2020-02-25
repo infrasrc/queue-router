@@ -132,7 +132,8 @@ class Worker extends EventEmitter {
             this.emit('message', { type: jsonMessage.type, status: messageStatuses.proceed });
 
         } catch (error) {
-            this.logError(span, error, error.message, error.stack);           
+            this.logError(span, error, error.message, error.stack);
+            delete error.traced;    
             this.endTrace(span);
             this.emit('error', error);
         }
