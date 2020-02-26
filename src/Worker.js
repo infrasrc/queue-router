@@ -97,6 +97,11 @@ class Worker extends EventEmitter {
         Tracer.logError(span, errorObject, message, stack);
     }
 
+    setTag(span, tagName, tagValue){
+        if ((!span) || (!span.log instanceof Function)) return;
+        span.setTag(tagName, tagValue);
+    }
+    
     async _handleMessage(message, attributes) {
         let span = null;
         try {
@@ -104,6 +109,8 @@ class Worker extends EventEmitter {
                 const traceId = _.getOr(null, 'traceId.StringValue')(attributes);
                 span = this.startTrace(traceId);
             }
+
+            setTag(span, "queue.address", this.consumer.queueUrl);
 
             const jsonMessage = parseJson(message);
 
