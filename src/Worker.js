@@ -110,7 +110,7 @@ class Worker extends EventEmitter {
                 span = this.startTrace(traceId);
             }
 
-            setTag(span, "queue.address", this.consumer.queueUrl);
+            this.setTag(span, "queue.address", this.consumer.queueUrl);
 
             const jsonMessage = parseJson(message);
 
